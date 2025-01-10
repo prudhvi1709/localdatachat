@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Query Bot </title>
+
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10/font/bootstrap-icons.css" rel="stylesheet" />
+  <style>
+    .narrative {
+      max-width: 40rem;
+    }
+
+    .btn-custom {
+      margin-right: 0.5rem;
+    }
+
+    #settings {
+      background-color: rgba(var(--bs-body-color-rgb), 0.10);
+    }
+  </style>
+</head>
+
+<body>
+  <nav class="navbar navbar-expand-lg bg-body-tertiary" data-bs-theme="dark">
+    <div class="container-fluid">
+      <a class="navbar-brand" href=".">DataChat</a>
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navbarSupportedContent">
+        <button class="settings-toggle btn btn-outline-light ms-auto me-2 mb-2 mb-lg-0" type="button" data-bs-toggle="collapse" href="#settings">
+          <i class="bi bi-gear"></i> <span class="d-lg-none ms-2">Settings</span>
+        </button>
+        <div class="nav-item dropdown mb-2 mb-lg-0" role="group" aria-label="Toggle dark mode" title="Toggle Dark Mode">
+          <button class="dark-theme-toggle btn btn-outline-light dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Toggle theme (auto)">
+            <i class="bi bi-circle-half"></i> <span class="d-lg-none ms-2">Toggle theme</span>
+          </button>
+          <ul class="dropdown-menu dropdown-menu-lg-end">
+            <li><button class="dropdown-item" data-bs-theme-value="light"><i class="me-2 bi bi-sun-fill"></i> Light</button></li>
+            <li><button class="dropdown-item" data-bs-theme-value="dark"><i class="me-2 bi bi-moon-stars-fill"></i> Dark</button></li>
+            <li><button class="dropdown-item" data-bs-theme-value="auto"><i class="me-2 bi bi-circle-half"></i> Auto</button></li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <div class="container">
+    <h1 class="mt-5 text-center">Query Bot </h1>
+
+    <!-- Settings -->
+    <form id="settings" class="collapse mt-5 border rounded p-3 mb-3">
+      <div class="mb-3">
+        <label for="openai-api-key" class="form-label">OpenAI API Key <span class="text-danger">*</span></label>
+        <input type="password" class="form-control" id="openai-api-key" required aria-describedby="openai-api-key-Help">
+        <div id="openai-api-key-Help" class="form-text">
+          Get it from <a href="https://platform.openai.com/api-keys" target="_blank" rel="noopener">OpenAI</a>,
+          <a href="https://llmfoundry.straive.com/code" target="_blank" rel="noopener">LLMFoundry</a>,
+          or any OpenAI compatible API provider.
+        </div>
+      </div>
+
+      <div class="mb-3">
+        <label for="openai-api-base" class="form-label">OpenAI API Base URL</label>
+        <input type="url" class="form-control" id="openai-api-base"
+          placeholder="https://api.openai.com/v1" aria-describedby="openai-api-base-help">
+        <div id="openai-api-base-help" class="form-text">
+          Optional. Use this if you have a custom OpenAI API endpoint or proxy.
+        </div>
+      </div>
+
+      <button type="submit" class="btn btn-primary">Save
+        <div class="loading d-none spinner-border spinner-border-sm" role="status"></div>
+        <span class="saved d-none ms-2">
+          <i class="bi bi-check-circle-fill"></i>
+        </span>
+      </button>
+    </form>
+
+    <h2>File Path</h2>
+    <div class="input-group mb-3">
+      <input type="text" id="filePathInput" class="form-control" placeholder="Enter full path to your CSV file..." />
+      <button id="loadFileButton" class="btn btn-primary">Load File</button>
+    </div>
+
+    <div id="output"></div>
+
+    <h2>Execute Query</h2>
+    <textarea id="queryInput" rows="4" class="form-control mb-3" placeholder="Enter your query here..."></textarea>
+    <button id="executeButton" class="btn btn-primary btn-custom" disabled>Execute Query</button>
+    <button id="downloadButton" class="btn btn-secondary">Download Table</button>
+    <div id="responseOutput" class="response-card mt-3"></div>
+  </div>
+
+  <script type="module" src="/js/script.js"></script>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@gramex/ui@0.3/dist/dark-theme.js" type="module"></script>
+
+  <footer class="my-5 vh-100 d-flex align-items-center justify-content-center">
+    <h1 class="display-6">
+      Designed by
+      <a href="https://gramener.com/"
+        class="text-reset link-offset-3 link-underline link-underline-opacity-25">Gramener</a>
+    </h1>
+  </footer>
+</body>
+
+</html>
