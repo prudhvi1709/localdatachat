@@ -36,19 +36,39 @@ con.execute("INSTALL mysql")
 con.execute("LOAD mysql")
 
 SYSTEM_PROMPT = (
-    "You are a helpful assistant. Your task is to analyze data from uploaded CSV files. "
-    "You will receive the schema for each file and a user query in natural language. "
-    "If multiple files are uploaded, observe the schemas of all the files. "
-    "Join them only when necessary based on the user query, ensuring that all column names are used exactly as provided in the schema. "
-    "Your goal is to convert the query into DuckDB SQL commands, paying close attention to the exact column names from the schema. "
-    "Only perform joins if required by the query. After executing the SQL commands, generate insights or results based on the query and schema. "
-    "Do not provide code templates or unnecessary explanations.\n\n"
+    "You are an expert data analyst tasked with analyzing data using DuckDB SQL syntax. "
+    "Based on the user's question, determine the appropriate analytical approach:\n\n"
+    "For questions about complaints/issues/problems:\n"
+    "- Use a simple but effective approach with LIKE operators\n"
+    "- Example query structure:\n"
+    "  SELECT ReviewText, COUNT(*) as Frequency\n"
+    "  FROM dataset\n"
+    "  WHERE LOWER(ReviewText) LIKE '%keyword1%'\n"
+    "     OR LOWER(ReviewText) LIKE '%keyword2%'\n"
+    "  GROUP BY ReviewText\n"
+    "  ORDER BY Frequency DESC\n"
+    "  LIMIT 10;\n\n"
+    "For trends or patterns:\n"
+    "- Use simple aggregations (COUNT, AVG, SUM)\n"
+    "- Group by relevant columns\n"
+    "- Always use LOWER() for case-insensitive text matching\n\n"
+    "For comparative analysis:\n"
+    "- Use simple subqueries or window functions\n"
+    "- Include HAVING clauses for filtered aggregations\n"
+    "- Sort results meaningfully\n\n"
+    "Important rules:\n"
+    "1. Always use simple, DuckDB-compatible SQL syntax\n"
+    "2. Avoid complex string manipulations\n"
+    "3. Use straightforward GROUP BY and aggregations\n"
+    "4. Limit results to prevent overwhelming output\n"
+    "5. Focus on finding meaningful patterns in the data\n\n"
     "For the output, follow this structure:\n"
     "1. Guess the objective of the user based on their query.\n"
     "2. Describe the steps to achieve this objective in SQL.\n"
     "3. Build the logic for the SQL query by identifying the necessary tables and relationships. Select the appropriate columns based on the user's question and the dataset.\n"
-    "4. Write SQL to answer the question. Use SQLite syntax.\n"
-    "5. Possible Explanation of the query and results."
+    "4. Write SQL to answer the question. Use DuckDB-compatible syntax.\n"
+    "5. Possible Explanation of the query and results.\n\n"
+    "Always ensure queries are compatible with DuckDB and provide clear insights."
 )
 
 # In-memory storage for uploaded datasets
@@ -82,6 +102,8 @@ class QueryRequest(BaseModel):
     dataset_name: str
     query: str
     file_path: str
+    is_explanation: bool = False
+    system_prompt: str | None = None  # Make system_prompt optional
 
 
 class AnalyzeFileRequest(BaseModel):
@@ -172,26 +194,23 @@ async def upload_csv(request: AnalyzeFileRequest):
         for file_path in file_paths:
             dataset_name = Path(file_path).stem
 
-            # Get schema and sample data using DuckDB
-            schema_description, sample_data = get_schema_from_duckdb(file_path)
+            # Get schema using DuckDB
+            schema_description, _ = get_schema_from_duckdb(file_path)  # Ignore sample data
 
-            # Generate suggested questions using LLM with schema and sample data
+            # Generate suggested questions using LLM with just the schema
             user_prompt = (
                 f"Dataset name: {dataset_name}\n"
                 f"Schema: {schema_description}\n"
-                f"Sample data (first 5 rows): {sample_data}\n"
-                "Please provide 5 suggested questions that can be answered using SQL queries on this dataset."
+                "Please provide 5 suggested questions (ONLY) that can be answered using duckDB queries on this dataset."
             )
             suggested_questions = await call_llm_system_prompt(user_prompt)
 
-            uploaded_datasets.append(
-                {
-                    "dataset_name": dataset_name,
-                    "schema": schema_description,
-                    "suggested_questions": suggested_questions,
-                    "file_type": Path(file_path).suffix.lower(),
-                }
-            )
+            uploaded_datasets.append({
+                "dataset_name": dataset_name,
+                "schema": schema_description,
+                "suggested_questions": suggested_questions,
+                "file_type": Path(file_path).suffix.lower(),
+            })
 
         return {"uploaded_datasets": uploaded_datasets}
 
@@ -203,6 +222,14 @@ async def upload_csv(request: AnalyzeFileRequest):
 @app.post("/query")
 async def query_data(request: QueryRequest):
     try:
+        # Handle explanation requests differently
+        if request.is_explanation:
+            # Call LLM directly with the results data
+            llm_response = await call_llm_system_prompt(request.query)
+            return JSONResponse(content={
+                "llm_response": llm_response
+            })
+
         # Split the file paths and process each file
         file_paths = [path.strip() for path in request.file_path.split(",")]
 
@@ -330,7 +357,7 @@ if __name__ == "__main__":
     import logging
 
     logger = logging.getLogger(__name__)
-    PORT = int(os.getenv("PORT", 8000))
+    PORT = int(os.getenv("PORT", 8001))
     try:
         uvicorn.run(app, host="0.0.0.0", port=PORT)
     except BaseException as e:
